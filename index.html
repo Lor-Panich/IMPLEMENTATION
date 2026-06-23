@@ -1,0 +1,968 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ตัวสร้างภาพรายงานสินค้า</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070b12;
+      --panel: #111827;
+      --section: #0b1220;
+      --section-soft: #121c2d;
+      --text: #f8fafc;
+      --muted: #9aa7b8;
+      --border: #263244;
+      --accent: #ef4444;
+      --button: #2563eb;
+      --button-soft: #1f2937;
+      --focus: #38bdf8;
+      --shadow: 0 20px 48px rgba(0, 0, 0, 0.34);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #070b12;
+      color: var(--text);
+      font-family: Arial, "Tahoma", "Noto Sans Thai", sans-serif;
+    }
+
+    .app {
+      width: min(1220px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0;
+      display: grid;
+      grid-template-columns: 390px minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel,
+    .preview {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+
+    .subtitle {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .form-section {
+      margin-top: 16px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--section);
+    }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    details.form-section {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    summary.section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0;
+      padding: 16px;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    summary.section-title::-webkit-details-marker {
+      display: none;
+    }
+
+    summary.section-title::after {
+      content: "▸ เปิด";
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    details[open] > summary.section-title::after {
+      content: "▾ ปิด";
+    }
+
+    .collapsible-content {
+      padding: 0 16px 16px;
+    }
+
+    label {
+      display: block;
+      margin: 12px 0 7px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    input[type="text"],
+    input[type="file"],
+    select {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #0f172a;
+      color: var(--text);
+      font: inherit;
+      padding: 11px 12px;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+      background: #0f172a;
+      color: var(--muted);
+    }
+
+    input[type="file"]::file-selector-button {
+      margin-right: 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #182235;
+      color: var(--text);
+      padding: 8px 12px;
+      font: inherit;
+      font-weight: 700;
+    }
+
+    input[type="color"] {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #0f172a;
+      padding: 5px;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--focus);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+      outline: 0;
+    }
+
+    .image-field[hidden] {
+      display: none;
+    }
+
+    .status-row,
+    .color-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .color-panel {
+      display: grid;
+      gap: 14px;
+    }
+
+    .quick-palette,
+    .color-group {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--section-soft);
+      padding: 14px;
+    }
+
+    .palette-label,
+    .color-group-title {
+      margin: 0 0 10px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .palette-label span {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .shared-swatches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .swatch {
+      width: 34px;
+      min-height: 34px;
+      border: 2px solid #0f172a;
+      border-radius: 999px;
+      padding: 0;
+      box-shadow: 0 0 0 1px var(--border);
+    }
+
+    .swatch.active {
+      box-shadow: 0 0 0 2px var(--focus);
+    }
+
+    .color-control {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 42px 72px;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid transparent;
+      border-radius: 12px;
+    }
+
+    .color-control + .color-control {
+      margin-top: 8px;
+    }
+
+    .color-control.active {
+      border-color: rgba(56, 189, 248, 0.55);
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    .color-control label {
+      margin: 0 0 3px;
+    }
+
+    .color-hint {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .color-preview {
+      display: block;
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    }
+
+    .date-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    button {
+      min-height: 46px;
+      border: 0;
+      border-radius: 12px;
+      padding: 0 16px;
+      background: var(--button);
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    button.secondary {
+      border: 1px solid var(--border);
+      background: var(--button-soft);
+      color: var(--text);
+    }
+
+    button.danger {
+      background: var(--accent);
+    }
+
+    button:hover {
+      filter: brightness(0.96);
+      transform: translateY(-1px);
+    }
+
+    .preview {
+      padding: 18px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: calc(100vh - 64px);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    @media (max-width: 880px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      canvas {
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="panel" aria-labelledby="page-title">
+      <h1 id="page-title">ตัวสร้างภาพรายงานสินค้า</h1>
+      <p class="subtitle">ต้นแบบใช้งานในเครื่องสำหรับสร้างภาพรายงานสินค้า 1080 x 1080 px</p>
+
+      <form id="reportForm">
+        <div class="form-section">
+          <p class="section-title">รูปสินค้า</p>
+          <label for="imageLayout">รูปแบบการจัดวางรูป</label>
+          <select id="imageLayout">
+            <option value="1">แบบที่ 1: 1 รูป</option>
+            <option value="2">แบบที่ 2: 2 รูป</option>
+            <option value="3">แบบที่ 3: 3 รูป</option>
+          </select>
+
+          <div class="image-field" id="imageField1">
+            <label for="productImage">อัปโหลดรูปสินค้า 1</label>
+            <input id="productImage" type="file" accept="image/*">
+          </div>
+
+          <div class="image-field" id="imageField2" hidden>
+            <label for="productImage2">อัปโหลดรูปสินค้า 2</label>
+            <input id="productImage2" type="file" accept="image/*">
+          </div>
+
+          <div class="image-field" id="imageField3" hidden>
+            <label for="productImage3">อัปโหลดรูปสินค้า 3</label>
+            <input id="productImage3" type="file" accept="image/*">
+          </div>
+        </div>
+
+        <div class="form-section">
+          <p class="section-title">ข้อความบนภาพ</p>
+          <label for="productCode">รหัสสินค้า</label>
+          <input id="productCode" type="text" placeholder="เช่น NC292" autocomplete="off">
+
+          <label for="lineOne">รายละเอียดบรรทัดที่ 1</label>
+          <input id="lineOne" type="text" placeholder="รายละเอียดสินค้า" autocomplete="off">
+
+          <label for="lineTwo">รายละเอียดบรรทัดที่ 2</label>
+          <input id="lineTwo" type="text" placeholder="รายละเอียดเพิ่มเติม" autocomplete="off">
+
+          <label for="statusTemplate">แม่แบบสถานะ</label>
+          <select id="statusTemplate"></select>
+
+          <label for="statusText">ข้อความสถานะ</label>
+          <input id="statusText" type="text" placeholder="พิมพ์ข้อความสถานะ" autocomplete="off">
+
+          <div class="status-row">
+            <button id="saveStatusButton" class="secondary" type="button">บันทึกข้อความสถานะนี้</button>
+            <button id="deleteStatusButton" class="secondary" type="button">ลบข้อความที่บันทึก</button>
+          </div>
+        </div>
+
+        <details class="form-section" id="colorSettings">
+          <summary class="section-title">ตั้งค่าสีตัวอักษร</summary>
+          <div class="collapsible-content color-panel">
+            <div class="quick-palette">
+              <p class="palette-label">สีด่วนสำหรับ <span id="activeColorLabel">สีข้อความหลัก</span></p>
+              <div class="shared-swatches" id="sharedSwatches" aria-label="ชุดสีสำเร็จรูป"></div>
+            </div>
+
+            <div class="color-group">
+              <p class="color-group-title">ข้อความหลัก</p>
+              <div class="color-control active" data-color-control="mainTextColor">
+                <div>
+                  <label for="mainTextColor">สีตัวอักษร</label>
+                  <p class="color-hint">เลือกสีเองหรือใช้สีด่วน</p>
+                </div>
+                <span class="color-preview" data-color-preview="mainTextColor"></span>
+                <input id="mainTextColor" type="color" value="#ffffff" aria-label="เลือกสีเองสำหรับสีข้อความหลัก">
+              </div>
+              <div class="color-control" data-color-control="mainStrokeColor">
+                <div>
+                  <label for="mainStrokeColor">สีขอบตัวอักษร</label>
+                  <p class="color-hint">เลือกสีเองหรือใช้สีด่วน</p>
+                </div>
+                <span class="color-preview" data-color-preview="mainStrokeColor"></span>
+                <input id="mainStrokeColor" type="color" value="#000000" aria-label="เลือกสีเองสำหรับสีขอบข้อความหลัก">
+              </div>
+            </div>
+
+            <div class="color-group">
+              <p class="color-group-title">ข้อความสถานะ</p>
+              <div class="color-control" data-color-control="statusTextColor">
+                <div>
+                  <label for="statusTextColor">สีตัวอักษร</label>
+                  <p class="color-hint">เลือกสีเองหรือใช้สีด่วน</p>
+                </div>
+                <span class="color-preview" data-color-preview="statusTextColor"></span>
+                <input id="statusTextColor" type="color" value="#e00000" aria-label="เลือกสีเองสำหรับสีข้อความสถานะ">
+              </div>
+              <div class="color-control" data-color-control="statusStrokeColor">
+                <div>
+                  <label for="statusStrokeColor">สีขอบตัวอักษร</label>
+                  <p class="color-hint">เลือกสีเองหรือใช้สีด่วน</p>
+                </div>
+                <span class="color-preview" data-color-preview="statusStrokeColor"></span>
+                <input id="statusStrokeColor" type="color" value="#000000" aria-label="เลือกสีเองสำหรับสีขอบข้อความสถานะ">
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details class="form-section" id="dateSettings">
+          <summary class="section-title">ตั้งค่าวันที่</summary>
+          <div class="collapsible-content date-row">
+            <div>
+              <label for="reportDate">วันที่</label>
+              <input id="reportDate" type="text" placeholder="23/06/69" autocomplete="off">
+            </div>
+            <button id="todayButton" class="secondary" type="button">ใช้วันที่วันนี้</button>
+          </div>
+        </details>
+
+        <div class="actions">
+          <button id="previewButton" type="button">แสดงตัวอย่าง</button>
+          <button id="exportButton" class="danger" type="button">ส่งออก PNG</button>
+          <button id="resetButton" class="secondary" type="reset">ล้างค่า</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="preview" aria-label="ตัวอย่างภาพรายงาน">
+      <canvas id="reportCanvas" width="1080" height="1080"></canvas>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("reportCanvas");
+    const ctx = canvas.getContext("2d");
+    const form = document.getElementById("reportForm");
+    const imageLayoutInput = document.getElementById("imageLayout");
+    const imageInput = document.getElementById("productImage");
+    const imageInputs = [
+      document.getElementById("productImage"),
+      document.getElementById("productImage2"),
+      document.getElementById("productImage3")
+    ];
+    const imageFields = [
+      document.getElementById("imageField1"),
+      document.getElementById("imageField2"),
+      document.getElementById("imageField3")
+    ];
+    const productCodeInput = document.getElementById("productCode");
+    const lineOneInput = document.getElementById("lineOne");
+    const lineTwoInput = document.getElementById("lineTwo");
+    const statusTemplateInput = document.getElementById("statusTemplate");
+    const statusInput = document.getElementById("statusText");
+    const saveStatusButton = document.getElementById("saveStatusButton");
+    const deleteStatusButton = document.getElementById("deleteStatusButton");
+    const mainTextColorInput = document.getElementById("mainTextColor");
+    const mainStrokeColorInput = document.getElementById("mainStrokeColor");
+    const statusTextColorInput = document.getElementById("statusTextColor");
+    const statusStrokeColorInput = document.getElementById("statusStrokeColor");
+    const dateInput = document.getElementById("reportDate");
+    const todayButton = document.getElementById("todayButton");
+    const previewButton = document.getElementById("previewButton");
+    const exportButton = document.getElementById("exportButton");
+    const defaultStatusPresets = [];
+    const customPresetKey = "productReportCustomStatusPresets";
+    const presetColors = [
+      { name: "ขาว", value: "#ffffff" },
+      { name: "ดำ", value: "#000000" },
+      { name: "แดง", value: "#e00000" },
+      { name: "เหลือง", value: "#ffd400" },
+      { name: "เขียว", value: "#16a34a" }
+    ];
+    const colorLabels = {
+      mainTextColor: "สีข้อความหลัก",
+      mainStrokeColor: "สีขอบข้อความหลัก",
+      statusTextColor: "สีข้อความสถานะ",
+      statusStrokeColor: "สีขอบข้อความสถานะ"
+    };
+    let activeColorTarget = "mainTextColor";
+
+    let productImages = [null, null, null];
+    let objectUrls = [null, null, null];
+
+    function getThaiDate() {
+      const now = new Date();
+      const day = String(now.getDate()).padStart(2, "0");
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const year = String((now.getFullYear() + 543) % 100).padStart(2, "0");
+      return `${day}/${month}/${year}`;
+    }
+
+    function getCustomStatusPresets() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(customPresetKey) || "[]");
+        return Array.isArray(saved) ? saved.filter(Boolean) : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function setCustomStatusPresets(presets) {
+      localStorage.setItem(customPresetKey, JSON.stringify(presets));
+    }
+
+    function updateColorPreview(targetId) {
+      const input = document.getElementById(targetId);
+      const preview = document.querySelector(`[data-color-preview="${targetId}"]`);
+      if (preview) {
+        preview.style.backgroundColor = input.value;
+      }
+    }
+
+    function setActiveColorTarget(targetId) {
+      activeColorTarget = targetId;
+      document.querySelectorAll("[data-color-control]").forEach((control) => {
+        control.classList.toggle("active", control.dataset.colorControl === targetId);
+      });
+      const label = document.getElementById("activeColorLabel");
+      if (label) {
+        label.textContent = colorLabels[targetId] || "สีที่เลือก";
+      }
+      updateSwatchState();
+    }
+
+    function updateSwatchState() {
+      const input = document.getElementById(activeColorTarget);
+      document.querySelectorAll("#sharedSwatches .swatch").forEach((button) => {
+        button.classList.toggle("active", button.dataset.color.toLowerCase() === input.value.toLowerCase());
+      });
+    }
+
+    function setupColorSwatches() {
+      const container = document.getElementById("sharedSwatches");
+      if (container) {
+        presetColors.forEach((color) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "swatch";
+          button.dataset.color = color.value;
+          button.style.backgroundColor = color.value;
+          button.setAttribute("aria-label", `เลือกสี${color.name}`);
+          button.title = color.name;
+          button.addEventListener("click", () => {
+            const input = document.getElementById(activeColorTarget);
+            input.value = color.value;
+            updateColorPreview(activeColorTarget);
+            updateSwatchState();
+            renderCanvas();
+          });
+          container.appendChild(button);
+        });
+      }
+
+      document.querySelectorAll("[data-color-control]").forEach((control) => {
+        control.addEventListener("click", () => {
+          setActiveColorTarget(control.dataset.colorControl);
+        });
+      });
+
+      [mainTextColorInput, mainStrokeColorInput, statusTextColorInput, statusStrokeColorInput].forEach((input) => {
+        input.addEventListener("input", () => {
+          setActiveColorTarget(input.id);
+          updateColorPreview(input.id);
+          renderCanvas();
+        });
+      });
+
+      ["mainTextColor", "mainStrokeColor", "statusTextColor", "statusStrokeColor"].forEach(updateColorPreview);
+      setActiveColorTarget("mainTextColor");
+    }
+
+    function renderStatusTemplates(selectedValue = "custom") {
+      const customPresets = getCustomStatusPresets();
+      statusTemplateInput.innerHTML = '<option value="custom">กำหนดเอง</option>';
+      defaultStatusPresets.forEach((preset) => {
+        const option = document.createElement("option");
+        option.value = `default:${preset}`;
+        option.textContent = preset;
+        statusTemplateInput.appendChild(option);
+      });
+      customPresets.forEach((preset) => {
+        const option = document.createElement("option");
+        option.value = `custom:${preset}`;
+        option.textContent = preset;
+        statusTemplateInput.appendChild(option);
+      });
+      statusTemplateInput.value = selectedValue;
+      if (statusTemplateInput.value !== selectedValue) {
+        statusTemplateInput.value = "custom";
+      }
+    }
+
+    function getReportDate() {
+      const value = dateInput.value.trim();
+      if (value) {
+        return value;
+      }
+      const today = getThaiDate();
+      dateInput.value = today;
+      return today;
+    }
+
+    function drawStrokedText(text, x, y, options) {
+      ctx.save();
+      ctx.font = `${options.weight || 800} ${options.size}px ${options.family || "Arial, Tahoma, sans-serif"}`;
+      ctx.textAlign = options.align || "center";
+      ctx.textBaseline = options.baseline || "middle";
+      ctx.lineJoin = "round";
+      ctx.miterLimit = 2;
+      ctx.strokeStyle = options.stroke || "#000";
+      ctx.lineWidth = options.strokeWidth || 8;
+      ctx.fillStyle = options.fill || "#fff";
+      ctx.strokeText(text, x, y);
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    }
+
+    function wrapText(text, maxWidth, font) {
+      const normalized = text.trim().replace(/\s+/g, " ");
+      if (!normalized) {
+        return [];
+      }
+
+      ctx.save();
+      ctx.font = font;
+      const words = normalized.split(" ");
+      const lines = [];
+      let line = "";
+
+      words.forEach((word) => {
+        const testLine = line ? `${line} ${word}` : word;
+        if (ctx.measureText(testLine).width <= maxWidth) {
+          line = testLine;
+          return;
+        }
+
+        if (line) {
+          lines.push(line);
+        }
+
+        if (ctx.measureText(word).width <= maxWidth) {
+          line = word;
+          return;
+        }
+
+        let chunk = "";
+        Array.from(word).forEach((char) => {
+          const testChunk = chunk + char;
+          if (ctx.measureText(testChunk).width <= maxWidth) {
+            chunk = testChunk;
+          } else {
+            if (chunk) {
+              lines.push(chunk);
+            }
+            chunk = char;
+          }
+        });
+        line = chunk;
+      });
+
+      if (line) {
+        lines.push(line);
+      }
+      ctx.restore();
+      return lines;
+    }
+
+    function drawWrappedBlock(text, y, options) {
+      const font = `${options.weight || 800} ${options.size}px ${options.family || "Arial, Tahoma, sans-serif"}`;
+      const lines = wrapText(text, options.maxWidth, font).slice(0, options.maxLines || 3);
+      lines.forEach((line, index) => {
+        drawStrokedText(line, canvas.width / 2, y + index * options.lineHeight, options);
+      });
+      return lines.length * options.lineHeight;
+    }
+
+    function drawImageSlot(image, area) {
+      if (!image) {
+        ctx.save();
+        ctx.setLineDash([18, 14]);
+        ctx.strokeStyle = "#b9c0ca";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(area.x, area.y, area.width, area.height);
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#7c8490";
+        ctx.font = "800 42px Arial, Tahoma, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("อัปโหลดรูป", area.x + area.width / 2, area.y + area.height / 2);
+        ctx.restore();
+        return;
+      }
+
+      const scale = Math.min(area.width / image.width, area.height / image.height);
+      const width = image.width * scale;
+      const height = image.height * scale;
+      const x = area.x + (area.width - width) / 2;
+      const y = area.y + (area.height - height) / 2;
+      ctx.drawImage(image, x, y, width, height);
+    }
+
+    function getImageAreas() {
+      const layout = imageLayoutInput.value;
+      if (layout === "2") {
+        return [
+          { x: 70, y: 50, width: 455, height: 580 },
+          { x: 555, y: 50, width: 455, height: 580 }
+        ];
+      }
+      if (layout === "3") {
+        return [
+          { x: 70, y: 40, width: 455, height: 285 },
+          { x: 555, y: 40, width: 455, height: 285 },
+          { x: 220, y: 345, width: 640, height: 285 }
+        ];
+      }
+      return [{ x: 70, y: 40, width: 940, height: 610 }];
+    }
+
+    function drawImageArea() {
+      const areas = getImageAreas();
+      areas.forEach((area, index) => {
+        drawImageSlot(productImages[index], area);
+      });
+    }
+
+    function updateImageFields() {
+      const count = Number(imageLayoutInput.value);
+      imageFields.forEach((field, index) => {
+        field.hidden = index >= count;
+      });
+    }
+
+    function drawLiveBadge(dateText) {
+      const badgeWidth = 150;
+      const badgeHeight = 62;
+      const badgeX = canvas.width - badgeWidth - 46;
+      const badgeY = canvas.height - badgeHeight - 36;
+      const dateX = badgeX - 28;
+      const centerY = badgeY + badgeHeight / 2;
+
+      drawStrokedText(dateText, dateX, centerY, {
+        size: 36,
+        weight: 900,
+        align: "right",
+        fill: "#fff",
+        stroke: "#000",
+        strokeWidth: 7
+      });
+
+      ctx.save();
+      ctx.fillStyle = "#d71920";
+      ctx.fillRect(badgeX, badgeY, badgeWidth, badgeHeight);
+      ctx.restore();
+
+      drawStrokedText("LIVE", badgeX + badgeWidth / 2, centerY, {
+        size: 37,
+        weight: 900,
+        fill: "#fff",
+        stroke: "#000",
+        strokeWidth: 5
+      });
+    }
+
+    function renderCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      drawImageArea();
+
+      const productCode = productCodeInput.value.trim();
+      const lineOne = lineOneInput.value.trim();
+      const lineTwo = lineTwoInput.value.trim();
+      const mainText = [productCode, lineOne, lineTwo].filter(Boolean).join(" ");
+      const statusText = statusInput.value.trim();
+      const dateText = getReportDate();
+
+      if (mainText) {
+        drawWrappedBlock(mainText, 705, {
+          size: 54,
+          lineHeight: 66,
+          maxWidth: 940,
+          maxLines: 3,
+          fill: mainTextColorInput.value,
+          stroke: mainStrokeColorInput.value,
+          strokeWidth: 9
+        });
+      }
+
+      if (statusText) {
+        drawWrappedBlock(statusText, 900, {
+          size: 56,
+          lineHeight: 68,
+          maxWidth: 900,
+          maxLines: 2,
+          fill: statusTextColorInput.value,
+          stroke: statusStrokeColorInput.value,
+          strokeWidth: 9
+        });
+      }
+
+      drawLiveBadge(dateText);
+    }
+
+    function makeFileName() {
+      const code = productCodeInput.value.trim();
+      if (!code) {
+        return "report-product.png";
+      }
+      const cleanCode = code.replace(/[\\/:*?"<>|]+/g, "-");
+      const cleanDate = getReportDate().replace(/[\\/:*?"<>|]+/g, "-");
+      return `report-${cleanCode}-${cleanDate}.png`;
+    }
+
+    function loadProductImage(index) {
+      const input = imageInputs[index];
+      const file = input.files && input.files[0];
+      if (objectUrls[index]) {
+        URL.revokeObjectURL(objectUrls[index]);
+        objectUrls[index] = null;
+      }
+      productImages[index] = null;
+
+      if (!file) {
+        renderCanvas();
+        return;
+      }
+
+      const img = new Image();
+      objectUrls[index] = URL.createObjectURL(file);
+      img.onload = () => {
+        productImages[index] = img;
+        renderCanvas();
+      };
+      img.src = objectUrls[index];
+    }
+
+    imageInputs.forEach((input, index) => {
+      input.addEventListener("change", () => loadProductImage(index));
+    });
+
+    imageLayoutInput.addEventListener("change", () => {
+      updateImageFields();
+      renderCanvas();
+    });
+
+    statusTemplateInput.addEventListener("change", () => {
+      const value = statusTemplateInput.value;
+      if (value === "custom") {
+        statusInput.focus();
+      } else {
+        statusInput.value = value.replace(/^default:|^custom:/, "");
+        renderCanvas();
+      }
+    });
+
+    statusInput.addEventListener("input", () => {
+      statusTemplateInput.value = "custom";
+    });
+
+    saveStatusButton.addEventListener("click", () => {
+      const value = statusInput.value.trim();
+      if (!value || defaultStatusPresets.includes(value)) {
+        return;
+      }
+      const presets = getCustomStatusPresets();
+      if (!presets.includes(value)) {
+        presets.push(value);
+        setCustomStatusPresets(presets);
+      }
+      renderStatusTemplates(`custom:${value}`);
+      renderCanvas();
+    });
+
+    deleteStatusButton.addEventListener("click", () => {
+      const value = statusTemplateInput.value;
+      if (!value.startsWith("custom:")) {
+        return;
+      }
+      const preset = value.replace(/^custom:/, "");
+      const presets = getCustomStatusPresets().filter((item) => item !== preset);
+      setCustomStatusPresets(presets);
+      statusTemplateInput.value = "custom";
+      statusInput.value = "";
+      renderStatusTemplates("custom");
+      renderCanvas();
+    });
+
+    todayButton.addEventListener("click", () => {
+      dateInput.value = getThaiDate();
+      renderCanvas();
+    });
+
+    previewButton.addEventListener("click", renderCanvas);
+
+    exportButton.addEventListener("click", () => {
+      renderCanvas();
+      const link = document.createElement("a");
+      link.download = makeFileName();
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+
+    form.addEventListener("reset", () => {
+      window.setTimeout(() => {
+        objectUrls.forEach((url) => {
+          if (url) {
+            URL.revokeObjectURL(url);
+          }
+        });
+        productImages = [null, null, null];
+        objectUrls = [null, null, null];
+        imageInputs.forEach((input) => {
+          input.value = "";
+        });
+        imageLayoutInput.value = "1";
+        statusTemplateInput.value = "custom";
+        mainTextColorInput.value = "#ffffff";
+        mainStrokeColorInput.value = "#000000";
+        statusTextColorInput.value = "#e00000";
+        statusStrokeColorInput.value = "#000000";
+        ["mainTextColor", "mainStrokeColor", "statusTextColor", "statusStrokeColor"].forEach(updateColorPreview);
+        setActiveColorTarget("mainTextColor");
+        updateImageFields();
+        dateInput.value = getThaiDate();
+        renderCanvas();
+      }, 0);
+    });
+
+    renderStatusTemplates();
+    setupColorSwatches();
+    updateImageFields();
+    dateInput.value = getThaiDate();
+    renderCanvas();
+  </script>
+</body>
+</html>
