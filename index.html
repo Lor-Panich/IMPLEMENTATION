@@ -138,9 +138,11 @@
     }
 
     input[type="file"] {
-      padding: 10px;
-      background: #0f172a;
-      color: var(--muted);
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
     }
 
     input[type="file"]::file-selector-button {
@@ -152,6 +154,67 @@
       padding: 8px 12px;
       font: inherit;
       font-weight: 700;
+    }
+
+    .upload-frame {
+      width: 100%;
+      min-height: 96px;
+      border: 1px dashed #40506a;
+      border-radius: 14px;
+      background: #0f172a;
+      color: var(--text);
+      padding: 12px;
+      text-align: left;
+      display: grid;
+      grid-template-columns: 64px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .upload-frame:hover,
+    .upload-frame:focus-visible {
+      border-color: var(--focus);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14);
+      filter: none;
+    }
+
+    .upload-thumb {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--section-soft);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .upload-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .upload-thumb span {
+      color: var(--muted);
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .upload-title,
+    .upload-hint {
+      display: block;
+    }
+
+    .upload-title {
+      font-weight: 800;
+    }
+
+    .upload-hint {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
     }
 
     input[type="color"] {
@@ -308,16 +371,17 @@
 
     .preview {
       padding: 18px;
+      overflow: auto;
     }
 
     canvas {
       display: block;
       width: 100%;
       height: auto;
-      max-height: calc(100vh - 64px);
       border: 1px solid var(--border);
       border-radius: 14px;
       background: #fff;
+      cursor: pointer;
     }
 
     @media (max-width: 880px) {
@@ -348,17 +412,38 @@
           </select>
 
           <div class="image-field" id="imageField1">
-            <label for="productImage">อัปโหลดรูปสินค้า 1</label>
+            <label>รูปสินค้า 1</label>
+            <button class="upload-frame" type="button" data-upload-index="0">
+              <span class="upload-thumb" id="uploadThumb1"><span>+</span></span>
+              <span>
+                <span class="upload-title" id="uploadTitle1">กดเพื่ออัปโหลดรูป</span>
+                <span class="upload-hint">รองรับไฟล์รูปภาพ และกดซ้ำเพื่อเปลี่ยนรูป</span>
+              </span>
+            </button>
             <input id="productImage" type="file" accept="image/*">
           </div>
 
           <div class="image-field" id="imageField2" hidden>
-            <label for="productImage2">อัปโหลดรูปสินค้า 2</label>
+            <label>รูปสินค้า 2</label>
+            <button class="upload-frame" type="button" data-upload-index="1">
+              <span class="upload-thumb" id="uploadThumb2"><span>+</span></span>
+              <span>
+                <span class="upload-title" id="uploadTitle2">กดเพื่ออัปโหลดรูป</span>
+                <span class="upload-hint">รองรับไฟล์รูปภาพ และกดซ้ำเพื่อเปลี่ยนรูป</span>
+              </span>
+            </button>
             <input id="productImage2" type="file" accept="image/*">
           </div>
 
           <div class="image-field" id="imageField3" hidden>
-            <label for="productImage3">อัปโหลดรูปสินค้า 3</label>
+            <label>รูปสินค้า 3</label>
+            <button class="upload-frame" type="button" data-upload-index="2">
+              <span class="upload-thumb" id="uploadThumb3"><span>+</span></span>
+              <span>
+                <span class="upload-title" id="uploadTitle3">กดเพื่ออัปโหลดรูป</span>
+                <span class="upload-hint">รองรับไฟล์รูปภาพ และกดซ้ำเพื่อเปลี่ยนรูป</span>
+              </span>
+            </button>
             <input id="productImage3" type="file" accept="image/*">
           </div>
         </div>
@@ -471,6 +556,17 @@
       document.getElementById("productImage2"),
       document.getElementById("productImage3")
     ];
+    const uploadFrames = Array.from(document.querySelectorAll("[data-upload-index]"));
+    const uploadThumbs = [
+      document.getElementById("uploadThumb1"),
+      document.getElementById("uploadThumb2"),
+      document.getElementById("uploadThumb3")
+    ];
+    const uploadTitles = [
+      document.getElementById("uploadTitle1"),
+      document.getElementById("uploadTitle2"),
+      document.getElementById("uploadTitle3")
+    ];
     const imageFields = [
       document.getElementById("imageField1"),
       document.getElementById("imageField2"),
@@ -510,6 +606,7 @@
 
     let productImages = [null, null, null];
     let objectUrls = [null, null, null];
+    let renderTimer = null;
 
     function getThaiDate() {
       const now = new Date();
@@ -530,6 +627,11 @@
 
     function setCustomStatusPresets(presets) {
       localStorage.setItem(customPresetKey, JSON.stringify(presets));
+    }
+
+    function scheduleRender() {
+      window.clearTimeout(renderTimer);
+      renderTimer = window.setTimeout(renderCanvas, 120);
     }
 
     function updateColorPreview(targetId) {
@@ -697,7 +799,7 @@
 
     function drawWrappedBlock(text, y, options) {
       const font = `${options.weight || 800} ${options.size}px ${options.family || "Arial, Tahoma, sans-serif"}`;
-      const lines = wrapText(text, options.maxWidth, font).slice(0, options.maxLines || 3);
+      const lines = options.lines || wrapText(text, options.maxWidth, font);
       lines.forEach((line, index) => {
         drawStrokedText(line, canvas.width / 2, y + index * options.lineHeight, options);
       });
@@ -716,7 +818,7 @@
         ctx.font = "800 42px Arial, Tahoma, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText("อัปโหลดรูป", area.x + area.width / 2, area.y + area.height / 2);
+        ctx.fillText("กดเพื่ออัปโหลดรูป", area.x + area.width / 2, area.y + area.height / 2);
         ctx.restore();
         return;
       }
@@ -761,6 +863,31 @@
       });
     }
 
+    function getImageBottom() {
+      return Math.max(...getImageAreas().map((area) => area.y + area.height));
+    }
+
+    function getWrappedLinesForOptions(text, options) {
+      const font = `${options.weight || 800} ${options.size}px ${options.family || "Arial, Tahoma, sans-serif"}`;
+      return wrapText(text, options.maxWidth, font);
+    }
+
+    function updateUploadFrame(index, fileName = "") {
+      const thumb = uploadThumbs[index];
+      const title = uploadTitles[index];
+      if (!thumb || !title) {
+        return;
+      }
+
+      if (productImages[index] && objectUrls[index]) {
+        thumb.innerHTML = `<img src="${objectUrls[index]}" alt="">`;
+        title.textContent = fileName || "เลือกรูปแล้ว";
+      } else {
+        thumb.innerHTML = "<span>+</span>";
+        title.textContent = "กดเพื่ออัปโหลดรูป";
+      }
+    }
+
     function drawLiveBadge(dateText) {
       const badgeWidth = 150;
       const badgeHeight = 62;
@@ -793,41 +920,53 @@
     }
 
     function renderCanvas() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      drawImageArea();
-
       const productCode = productCodeInput.value.trim();
       const lineOne = lineOneInput.value.trim();
       const lineTwo = lineTwoInput.value.trim();
       const mainText = [productCode, lineOne, lineTwo].filter(Boolean).join(" ");
       const statusText = statusInput.value.trim();
       const dateText = getReportDate();
+      const mainOptions = {
+        size: 54,
+        lineHeight: 66,
+        maxWidth: 940,
+        fill: mainTextColorInput.value,
+        stroke: mainStrokeColorInput.value,
+        strokeWidth: 9
+      };
+      const statusOptions = {
+        size: 56,
+        lineHeight: 68,
+        maxWidth: 900,
+        fill: statusTextColorInput.value,
+        stroke: statusStrokeColorInput.value,
+        strokeWidth: 9
+      };
+      const mainLines = getWrappedLinesForOptions(mainText, mainOptions);
+      const statusLines = getWrappedLinesForOptions(statusText, statusOptions);
+      const imageBottom = getImageBottom();
+      const mainY = imageBottom + 55;
+      const mainBottom = mainLines.length ? mainY + (mainLines.length - 1) * mainOptions.lineHeight + mainOptions.lineHeight / 2 : imageBottom;
+      const statusY = Math.max(900, mainBottom + 80);
+      const statusBottom = statusLines.length ? statusY + (statusLines.length - 1) * statusOptions.lineHeight + statusOptions.lineHeight / 2 : statusY;
+      const nextHeight = Math.max(1080, Math.ceil(statusBottom + 160));
+
+      if (canvas.height !== nextHeight) {
+        canvas.height = nextHeight;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      drawImageArea();
 
       if (mainText) {
-        drawWrappedBlock(mainText, 705, {
-          size: 54,
-          lineHeight: 66,
-          maxWidth: 940,
-          maxLines: 3,
-          fill: mainTextColorInput.value,
-          stroke: mainStrokeColorInput.value,
-          strokeWidth: 9
-        });
+        drawWrappedBlock(mainText, mainY, { ...mainOptions, lines: mainLines });
       }
 
       if (statusText) {
-        drawWrappedBlock(statusText, 900, {
-          size: 56,
-          lineHeight: 68,
-          maxWidth: 900,
-          maxLines: 2,
-          fill: statusTextColorInput.value,
-          stroke: statusStrokeColorInput.value,
-          strokeWidth: 9
-        });
+        drawWrappedBlock(statusText, statusY, { ...statusOptions, lines: statusLines });
       }
 
       drawLiveBadge(dateText);
@@ -851,6 +990,7 @@
         objectUrls[index] = null;
       }
       productImages[index] = null;
+      updateUploadFrame(index);
 
       if (!file) {
         renderCanvas();
@@ -861,10 +1001,18 @@
       objectUrls[index] = URL.createObjectURL(file);
       img.onload = () => {
         productImages[index] = img;
+        updateUploadFrame(index, file.name);
         renderCanvas();
       };
       img.src = objectUrls[index];
     }
+
+    uploadFrames.forEach((frame) => {
+      frame.addEventListener("click", () => {
+        const index = Number(frame.dataset.uploadIndex);
+        imageInputs[index].click();
+      });
+    });
 
     imageInputs.forEach((input, index) => {
       input.addEventListener("change", () => loadProductImage(index));
@@ -875,18 +1023,40 @@
       renderCanvas();
     });
 
+    canvas.addEventListener("click", (event) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (event.clientX - rect.left) * scaleX;
+      const y = (event.clientY - rect.top) * scaleY;
+      const areaIndex = getImageAreas().findIndex((area) => (
+        x >= area.x &&
+        x <= area.x + area.width &&
+        y >= area.y &&
+        y <= area.y + area.height
+      ));
+      if (areaIndex >= 0) {
+        imageInputs[areaIndex].click();
+      }
+    });
+
     statusTemplateInput.addEventListener("change", () => {
       const value = statusTemplateInput.value;
       if (value === "custom") {
         statusInput.focus();
       } else {
         statusInput.value = value.replace(/^default:|^custom:/, "");
-        renderCanvas();
       }
+      renderCanvas();
     });
 
     statusInput.addEventListener("input", () => {
       statusTemplateInput.value = "custom";
+      scheduleRender();
+    });
+
+    [productCodeInput, lineOneInput, lineTwoInput, dateInput].forEach((input) => {
+      input.addEventListener("input", scheduleRender);
     });
 
     saveStatusButton.addEventListener("click", () => {
@@ -939,11 +1109,12 @@
             URL.revokeObjectURL(url);
           }
         });
-        productImages = [null, null, null];
-        objectUrls = [null, null, null];
-        imageInputs.forEach((input) => {
-          input.value = "";
-        });
+      productImages = [null, null, null];
+      objectUrls = [null, null, null];
+      imageInputs.forEach((input) => {
+        input.value = "";
+      });
+        [0, 1, 2].forEach(updateUploadFrame);
         imageLayoutInput.value = "1";
         statusTemplateInput.value = "custom";
         mainTextColorInput.value = "#ffffff";
