@@ -409,6 +409,8 @@
             <option value="1">แบบที่ 1: 1 รูป</option>
             <option value="2">แบบที่ 2: 2 รูป</option>
             <option value="3">แบบที่ 3: 3 รูป</option>
+            <option value="4">แบบที่ 4: 4 รูป</option>
+            <option value="5">แบบที่ 5: 5 รูป</option>
           </select>
 
           <div class="image-field" id="imageField1">
@@ -445,6 +447,30 @@
               </span>
             </button>
             <input id="productImage3" type="file" accept="image/*">
+          </div>
+
+          <div class="image-field" id="imageField4" hidden>
+            <label>รูปสินค้า 4</label>
+            <button class="upload-frame" type="button" data-upload-index="3">
+              <span class="upload-thumb" id="uploadThumb4"><span>+</span></span>
+              <span>
+                <span class="upload-title" id="uploadTitle4">กดเพื่ออัปโหลดรูป</span>
+                <span class="upload-hint">รองรับไฟล์รูปภาพ และกดซ้ำเพื่อเปลี่ยนรูป</span>
+              </span>
+            </button>
+            <input id="productImage4" type="file" accept="image/*">
+          </div>
+
+          <div class="image-field" id="imageField5" hidden>
+            <label>รูปสินค้า 5</label>
+            <button class="upload-frame" type="button" data-upload-index="4">
+              <span class="upload-thumb" id="uploadThumb5"><span>+</span></span>
+              <span>
+                <span class="upload-title" id="uploadTitle5">กดเพื่ออัปโหลดรูป</span>
+                <span class="upload-hint">รองรับไฟล์รูปภาพ และกดซ้ำเพื่อเปลี่ยนรูป</span>
+              </span>
+            </button>
+            <input id="productImage5" type="file" accept="image/*">
           </div>
         </div>
 
@@ -554,23 +580,31 @@
     const imageInputs = [
       document.getElementById("productImage"),
       document.getElementById("productImage2"),
-      document.getElementById("productImage3")
+      document.getElementById("productImage3"),
+      document.getElementById("productImage4"),
+      document.getElementById("productImage5")
     ];
     const uploadFrames = Array.from(document.querySelectorAll("[data-upload-index]"));
     const uploadThumbs = [
       document.getElementById("uploadThumb1"),
       document.getElementById("uploadThumb2"),
-      document.getElementById("uploadThumb3")
+      document.getElementById("uploadThumb3"),
+      document.getElementById("uploadThumb4"),
+      document.getElementById("uploadThumb5")
     ];
     const uploadTitles = [
       document.getElementById("uploadTitle1"),
       document.getElementById("uploadTitle2"),
-      document.getElementById("uploadTitle3")
+      document.getElementById("uploadTitle3"),
+      document.getElementById("uploadTitle4"),
+      document.getElementById("uploadTitle5")
     ];
     const imageFields = [
       document.getElementById("imageField1"),
       document.getElementById("imageField2"),
-      document.getElementById("imageField3")
+      document.getElementById("imageField3"),
+      document.getElementById("imageField4"),
+      document.getElementById("imageField5")
     ];
     const productCodeInput = document.getElementById("productCode");
     const lineOneInput = document.getElementById("lineOne");
@@ -604,8 +638,8 @@
     };
     let activeColorTarget = "mainTextColor";
 
-    let productImages = [null, null, null];
-    let objectUrls = [null, null, null];
+    let productImages = [null, null, null, null, null];
+    let objectUrls = [null, null, null, null, null];
     let renderTimer = null;
 
     function getThaiDate() {
@@ -846,6 +880,23 @@
           { x: 220, y: 345, width: 640, height: 285 }
         ];
       }
+      if (layout === "4") {
+        return [
+          { x: 70, y: 40, width: 455, height: 285 },
+          { x: 555, y: 40, width: 455, height: 285 },
+          { x: 70, y: 345, width: 455, height: 285 },
+          { x: 555, y: 345, width: 455, height: 285 }
+        ];
+      }
+      if (layout === "5") {
+        return [
+          { x: 50, y: 40, width: 315, height: 275 },
+          { x: 382, y: 40, width: 315, height: 275 },
+          { x: 715, y: 40, width: 315, height: 275 },
+          { x: 205, y: 335, width: 315, height: 275 },
+          { x: 560, y: 335, width: 315, height: 275 }
+        ];
+      }
       return [{ x: 70, y: 40, width: 940, height: 610 }];
     }
 
@@ -923,7 +974,6 @@
       const productCode = productCodeInput.value.trim();
       const lineOne = lineOneInput.value.trim();
       const lineTwo = lineTwoInput.value.trim();
-      const mainText = [productCode, lineOne, lineTwo].filter(Boolean).join(" ");
       const statusText = statusInput.value.trim();
       const dateText = getReportDate();
       const mainOptions = {
@@ -934,6 +984,12 @@
         stroke: mainStrokeColorInput.value,
         strokeWidth: 9
       };
+      const textBlocks = [productCode, lineOne, lineTwo]
+        .filter(Boolean)
+        .map((text) => ({
+          text,
+          lines: getWrappedLinesForOptions(text, mainOptions)
+        }));
       const statusOptions = {
         size: 56,
         lineHeight: 68,
@@ -942,11 +998,18 @@
         stroke: statusStrokeColorInput.value,
         strokeWidth: 9
       };
-      const mainLines = getWrappedLinesForOptions(mainText, mainOptions);
       const statusLines = getWrappedLinesForOptions(statusText, statusOptions);
       const imageBottom = getImageBottom();
-      const mainY = imageBottom + 55;
-      const mainBottom = mainLines.length ? mainY + (mainLines.length - 1) * mainOptions.lineHeight + mainOptions.lineHeight / 2 : imageBottom;
+      let nextTextY = imageBottom + 55;
+      let mainBottom = imageBottom;
+      textBlocks.forEach((block) => {
+        if (!block.lines.length) {
+          return;
+        }
+        block.y = nextTextY;
+        mainBottom = block.y + (block.lines.length - 1) * mainOptions.lineHeight + mainOptions.lineHeight / 2;
+        nextTextY = mainBottom + 54;
+      });
       const statusY = Math.max(900, mainBottom + 80);
       const statusBottom = statusLines.length ? statusY + (statusLines.length - 1) * statusOptions.lineHeight + statusOptions.lineHeight / 2 : statusY;
       const nextHeight = Math.max(1080, Math.ceil(statusBottom + 160));
@@ -961,9 +1024,9 @@
 
       drawImageArea();
 
-      if (mainText) {
-        drawWrappedBlock(mainText, mainY, { ...mainOptions, lines: mainLines });
-      }
+      textBlocks.forEach((block) => {
+        drawWrappedBlock(block.text, block.y, { ...mainOptions, lines: block.lines });
+      });
 
       if (statusText) {
         drawWrappedBlock(statusText, statusY, { ...statusOptions, lines: statusLines });
@@ -1109,12 +1172,12 @@
             URL.revokeObjectURL(url);
           }
         });
-      productImages = [null, null, null];
-      objectUrls = [null, null, null];
+      productImages = [null, null, null, null, null];
+      objectUrls = [null, null, null, null, null];
       imageInputs.forEach((input) => {
         input.value = "";
       });
-        [0, 1, 2].forEach(updateUploadFrame);
+        [0, 1, 2, 3, 4].forEach(updateUploadFrame);
         imageLayoutInput.value = "1";
         statusTemplateInput.value = "custom";
         mainTextColorInput.value = "#ffffff";
