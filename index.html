@@ -172,10 +172,16 @@
     }
 
     .upload-frame:hover,
-    .upload-frame:focus-visible {
+    .upload-frame:focus-visible,
+    .upload-frame.is-dragover {
       border-color: var(--focus);
+      background: rgba(56, 189, 248, 0.1);
       box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14);
       filter: none;
+    }
+
+    .upload-frame.is-dragover .upload-title {
+      color: #e0f2fe;
     }
 
     .upload-thumb {
@@ -1045,9 +1051,7 @@
       return `report-${cleanCode}-${cleanDate}.png`;
     }
 
-    function loadProductImage(index) {
-      const input = imageInputs[index];
-      const file = input.files && input.files[0];
+    function loadImageFile(index, file) {
       if (objectUrls[index]) {
         URL.revokeObjectURL(objectUrls[index]);
         objectUrls[index] = null;
@@ -1070,10 +1074,61 @@
       img.src = objectUrls[index];
     }
 
+    function loadProductImage(index) {
+      const input = imageInputs[index];
+      const file = input.files && input.files[0];
+      loadImageFile(index, file);
+    }
+
+    function getFirstImageFile(files) {
+      return Array.from(files || []).find((file) => file.type && file.type.startsWith("image/"));
+    }
+
+    function setDragState(index, isActive) {
+      const frame = uploadFrames[index];
+      const title = uploadTitles[index];
+      frame.classList.toggle("is-dragover", isActive);
+      if (isActive) {
+        if (!frame.dataset.previousTitle) {
+          frame.dataset.previousTitle = title.textContent;
+        }
+        title.textContent = "วางรูปที่นี่";
+        return;
+      }
+      if (frame.dataset.previousTitle) {
+        title.textContent = frame.dataset.previousTitle;
+        delete frame.dataset.previousTitle;
+      }
+    }
+
     uploadFrames.forEach((frame) => {
+      const index = Number(frame.dataset.uploadIndex);
       frame.addEventListener("click", () => {
-        const index = Number(frame.dataset.uploadIndex);
         imageInputs[index].click();
+      });
+      frame.addEventListener("dragenter", (event) => {
+        event.preventDefault();
+        setDragState(index, true);
+      });
+      frame.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        if (event.dataTransfer) {
+          event.dataTransfer.dropEffect = "copy";
+        }
+        setDragState(index, true);
+      });
+      frame.addEventListener("dragleave", (event) => {
+        if (!frame.contains(event.relatedTarget)) {
+          setDragState(index, false);
+        }
+      });
+      frame.addEventListener("drop", (event) => {
+        event.preventDefault();
+        setDragState(index, false);
+        const file = getFirstImageFile(event.dataTransfer && event.dataTransfer.files);
+        if (file) {
+          loadImageFile(index, file);
+        }
       });
     });
 
