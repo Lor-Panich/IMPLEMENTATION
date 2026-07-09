@@ -250,6 +250,37 @@
       gap: 10px;
     }
 
+    .detail-lines {
+      display: grid;
+      gap: 10px;
+    }
+
+    .detail-line-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: start;
+    }
+
+    .remove-detail-line {
+      min-width: 58px;
+      padding: 0 12px;
+    }
+
+    .detail-actions {
+      display: grid;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .limit-message {
+      min-height: 18px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
     .color-panel {
       display: grid;
       gap: 14px;
@@ -375,6 +406,14 @@
       transform: translateY(-1px);
     }
 
+    button:disabled,
+    button:disabled:hover {
+      cursor: not-allowed;
+      filter: none;
+      opacity: 0.55;
+      transform: none;
+    }
+
     .preview {
       padding: 18px;
       overflow: auto;
@@ -397,6 +436,10 @@
 
       canvas {
         max-height: none;
+      }
+
+      .detail-line-row {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -485,11 +528,24 @@
           <label for="productCode">รหัสสินค้า</label>
           <input id="productCode" type="text" placeholder="เช่น NC292" autocomplete="off">
 
-          <label for="lineOne">รายละเอียดบรรทัดที่ 1</label>
-          <input id="lineOne" type="text" placeholder="รายละเอียดสินค้า" autocomplete="off">
-
-          <label for="lineTwo">รายละเอียดบรรทัดที่ 2</label>
-          <input id="lineTwo" type="text" placeholder="รายละเอียดเพิ่มเติม" autocomplete="off">
+          <div id="detailLines" class="detail-lines" aria-label="รายละเอียดสินค้า">
+            <div class="detail-line" data-detail-line>
+              <label for="lineOne">รายละเอียดบรรทัดที่ 1</label>
+              <div class="detail-line-row">
+                <input id="lineOne" type="text" placeholder="รายละเอียดสินค้า" autocomplete="off" data-detail-input>
+              </div>
+            </div>
+            <div class="detail-line" data-detail-line>
+              <label for="lineTwo">รายละเอียดบรรทัดที่ 2</label>
+              <div class="detail-line-row">
+                <input id="lineTwo" type="text" placeholder="รายละเอียดเพิ่มเติม" autocomplete="off" data-detail-input>
+              </div>
+            </div>
+          </div>
+          <div class="detail-actions">
+            <button id="addDetailLineButton" class="secondary" type="button">+ เพิ่มบรรทัดรายละเอียด</button>
+            <p id="detailLineLimitMessage" class="limit-message" aria-live="polite"></p>
+          </div>
 
           <label for="statusTemplate">แม่แบบสถานะ</label>
           <select id="statusTemplate"></select>
@@ -613,8 +669,9 @@
       document.getElementById("imageField5")
     ];
     const productCodeInput = document.getElementById("productCode");
-    const lineOneInput = document.getElementById("lineOne");
-    const lineTwoInput = document.getElementById("lineTwo");
+    const detailLinesContainer = document.getElementById("detailLines");
+    const addDetailLineButton = document.getElementById("addDetailLineButton");
+    const detailLineLimitMessage = document.getElementById("detailLineLimitMessage");
     const statusTemplateInput = document.getElementById("statusTemplate");
     const statusInput = document.getElementById("statusText");
     const saveStatusButton = document.getElementById("saveStatusButton");
@@ -629,6 +686,8 @@
     const exportButton = document.getElementById("exportButton");
     const defaultStatusPresets = [];
     const customPresetKey = "productReportCustomStatusPresets";
+    const initialDetailLineCount = 2;
+    const maxDetailLineCount = 10;
     const presetColors = [
       { name: "ขาว", value: "#ffffff" },
       { name: "ดำ", value: "#000000" },
@@ -672,6 +731,81 @@
     function scheduleRender() {
       window.clearTimeout(renderTimer);
       renderTimer = window.setTimeout(renderCanvas, 120);
+    }
+
+    function getDetailLineItems() {
+      return Array.from(detailLinesContainer.querySelectorAll("[data-detail-line]"));
+    }
+
+    function getDetailLineInputs() {
+      return Array.from(detailLinesContainer.querySelectorAll("[data-detail-input]"));
+    }
+
+    function getDetailLines() {
+      return getDetailLineInputs().map((input) => input.value.trim()).filter(Boolean);
+    }
+
+    function createDetailLine(value = "") {
+      const item = document.createElement("div");
+      item.className = "detail-line";
+      item.dataset.detailLine = "";
+
+      const label = document.createElement("label");
+      const row = document.createElement("div");
+      row.className = "detail-line-row";
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = "รายละเอียดเพิ่มเติม";
+      input.autocomplete = "off";
+      input.value = value;
+      input.dataset.detailInput = "";
+
+      const removeButton = document.createElement("button");
+      removeButton.className = "secondary remove-detail-line";
+      removeButton.type = "button";
+      removeButton.textContent = "ลบ";
+      removeButton.dataset.removeDetailLine = "";
+
+      row.append(input, removeButton);
+      item.append(label, row);
+      return item;
+    }
+
+    function updateDetailLineControls() {
+      const items = getDetailLineItems();
+      items.forEach((item, index) => {
+        const input = item.querySelector("[data-detail-input]");
+        const label = item.querySelector("label");
+        const removeButton = item.querySelector("[data-remove-detail-line]");
+        const number = index + 1;
+        const inputId = index === 0 ? "lineOne" : index === 1 ? "lineTwo" : `detailLine${number}`;
+
+        input.id = inputId;
+        label.htmlFor = inputId;
+        label.textContent = `รายละเอียดบรรทัดที่ ${number}`;
+
+        if (removeButton) {
+          removeButton.hidden = index < initialDetailLineCount;
+          removeButton.setAttribute("aria-label", `ลบรายละเอียดบรรทัดที่ ${number}`);
+        }
+      });
+
+      const isMax = items.length >= maxDetailLineCount;
+      addDetailLineButton.disabled = isMax;
+      detailLineLimitMessage.textContent = isMax ? "เพิ่มได้สูงสุด 10 บรรทัด" : "";
+    }
+
+    function resetDetailLines() {
+      getDetailLineItems().forEach((item, index) => {
+        if (index >= initialDetailLineCount) {
+          item.remove();
+          return;
+        }
+        const input = item.querySelector("[data-detail-input]");
+        input.value = "";
+      });
+      updateDetailLineControls();
     }
 
     function updateColorPreview(targetId) {
@@ -978,8 +1112,7 @@
 
     function renderCanvas() {
       const productCode = productCodeInput.value.trim();
-      const lineOne = lineOneInput.value.trim();
-      const lineTwo = lineTwoInput.value.trim();
+      const detailLines = getDetailLines();
       const statusText = statusInput.value.trim();
       const dateText = getReportDate();
       const mainOptions = {
@@ -990,7 +1123,7 @@
         stroke: mainStrokeColorInput.value,
         strokeWidth: 9
       };
-      const textBlocks = [productCode, lineOne, lineTwo]
+      const textBlocks = [productCode, ...detailLines]
         .filter(Boolean)
         .map((text) => ({
           text,
@@ -1173,7 +1306,38 @@
       scheduleRender();
     });
 
-    [productCodeInput, lineOneInput, lineTwoInput, dateInput].forEach((input) => {
+    detailLinesContainer.addEventListener("input", (event) => {
+      if (event.target.matches("[data-detail-input]")) {
+        scheduleRender();
+      }
+    });
+
+    detailLinesContainer.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-remove-detail-line]");
+      if (!button) {
+        return;
+      }
+      const item = button.closest("[data-detail-line]");
+      if (item && getDetailLineItems().length > initialDetailLineCount) {
+        item.remove();
+        updateDetailLineControls();
+        renderCanvas();
+      }
+    });
+
+    addDetailLineButton.addEventListener("click", () => {
+      if (getDetailLineItems().length >= maxDetailLineCount) {
+        updateDetailLineControls();
+        return;
+      }
+      const item = createDetailLine();
+      detailLinesContainer.appendChild(item);
+      updateDetailLineControls();
+      item.querySelector("[data-detail-input]").focus();
+      renderCanvas();
+    });
+
+    [productCodeInput, dateInput].forEach((input) => {
       input.addEventListener("input", scheduleRender);
     });
 
@@ -1239,6 +1403,7 @@
         mainStrokeColorInput.value = "#000000";
         statusTextColorInput.value = "#e00000";
         statusStrokeColorInput.value = "#000000";
+        resetDetailLines();
         ["mainTextColor", "mainStrokeColor", "statusTextColor", "statusStrokeColor"].forEach(updateColorPreview);
         setActiveColorTarget("mainTextColor");
         updateImageFields();
@@ -1249,6 +1414,7 @@
 
     renderStatusTemplates();
     setupColorSwatches();
+    updateDetailLineControls();
     updateImageFields();
     dateInput.value = getThaiDate();
     renderCanvas();
